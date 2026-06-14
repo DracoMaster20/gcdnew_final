@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gas Cylinder Weight Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="summa.css">
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <div class="app-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+      </div>
+      <span class="app-title">GCD</span>
+      <span class="app-subtitle">Gas Cylinder Weight Detection</span>
+    </div>
+    <div class="top-bar-right">
+      <div class="status-chip" id="status-chip">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Offline</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <main class="app-layout">
+
+    <!-- Sidebar Controls -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <p class="sidebar-label">Camera</p>
+        <button class="btn btn-start" id="start-button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Start
+        </button>
+        <button class="btn btn-capture" id="capture-button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+          Capture
+        </button>
+        <button class="btn btn-stop" id="stop-button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          Stop
+        </button>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <p class="sidebar-label">Data</p>
+        <button class="btn btn-wait" id="wait-button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Manual Entry
+        </button>
+        <button class="btn btn-analyze" id="analyze-button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Excel
+        </button>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Manual Input Panel (hidden by default) -->
+      <div class="sidebar-section manual-input-panel" id="manual-input-panel">
+        <p class="sidebar-label">Enter Weight</p>
+        <div class="input-group">
+          <input type="number" id="num_wait" class="modern-input" placeholder="e.g. 145">
+          <button class="btn btn-submit" id="enter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+            Submit
+          </button>
+        </div>
+      </div>
+
+      <!-- Prediction Count -->
+      <div class="sidebar-footer">
+        <div class="prediction-counter">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span id="pred-count">0 predictions</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <section class="content">
+      <!-- Video Feed -->
+      <div class="video-container" id="video-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="captured-image" width="640" height="480"></canvas>
+        <!-- Placeholder when camera is off -->
+        <div class="video-placeholder" id="video-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
+            <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+          <p>Click <strong>Start</strong> to begin camera feed</p>
+        </div>
+      </div>
+
+      <!-- Result Card -->
+      <div class="result-card" id="result-card">
+        <div class="result-icon" id="result-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <p class="result-text" id="result-text">Ready — capture an image to detect weight</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="render.js"></script>
+</body>
+</html>
