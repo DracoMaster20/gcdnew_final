@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const axios = require('axios');
-const FormData = require('form-data');
+const fs = require('fs');
+const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 
 let mainWindow;
@@ -12,6 +12,14 @@ worksheet.columns = [
   { header: 'Time', key: 'time' },
   { header: 'Value', key: 'value' },
 ];
+
+const CAPTURES_DIR = path.join(__dirname, 'captures');
+const PREDICT_SCRIPT = path.join(__dirname, 'predict_local.py');
+
+// Ensure captures directory exists
+if (!fs.existsSync(CAPTURES_DIR)) {
+  fs.mkdirSync(CAPTURES_DIR, { recursive: true });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -47,10 +55,19 @@ app.on('window-all-closed', () => {
 
 ipcMain.handle('send-image', async (event, imageData) => {
   try {
-    console.log('Sending image to model...');
-    const response = await sendImageToModel(imageData);
-    const prediction = response.prediction;
-    console.log('Prediction received:', prediction);
+    console.log('Running local inference...');
+
+    // Save the base64 image to a temp file
+    const imgBuffer = Buffer.from(imageData.split(',')[1], 'base64');
+    const imgPath = path.join(CAPTURES_DIR, 'electron_capture.jpg');
+    fs.writeFileSync(imgPath, imgBuffer);
+
+    // Run the local Python prediction script
+    const result = await runPythonPredict(imgPath);
+
+    console.log('Prediction result:', result);
+
+    const prediction = result.prediction || result.error || 'Unknown';
     const date = new Date();
     worksheet.addRow({
       date: date.toLocaleDateString(),
@@ -58,6 +75,9 @@ ipcMain.handle('send-image', async (event, imageData) => {
       value: prediction,
     });
 
+    if (result.error) {
+      return { error: result.error };
+    }
     return { prediction };
   } catch (error) {
     console.error('Error in main process:', error);
@@ -94,20 +114,36 @@ ipcMain.on('stop-capture', (event) => {
   app.quit();
 });
 
-async function sendImageToModel(imageData) {
-  const form = new FormData();
-  form.append('file', Buffer.from(imageData.split(',')[1], 'base64'), {
-    filename: 'image.jpg',
-    contentType: 'image/jpeg',
-  });
+/**
+ * Runs predict_local.py as a child process and returns the parsed JSON result.
+ * Tries 'python3' first (Linux/macOS/Raspberry Pi), falls back to 'python' (Windows).
+ */
+function runPythonPredict(imagePath) {
+  return new Promise((resolve, reject) => {
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
-  try {
-    const response = await axios.post('https://ideal-snapper-42.rshare.io/predict', form, {
-      headers: form.getHeaders(),
+    execFile(pythonCmd, [PREDICT_SCRIPT, imagePath], {
+      cwd: __dirname,
+      timeout: 60000, // 60s timeout for model loading + inference
+    }, (error, stdout, stderr) => {
+      if (stderr) {
+        console.warn('Python stderr:', stderr);
+      }
+
+      if (error) {
+        // If python3 fails on Windows, it might not exist — but we already pick 'python'
+        console.error('Python exec error:', error.message);
+        reject(new Error(`Python inference failed: ${error.message}`));
+        return;
+      }
+
+      try {
+        const result = JSON.parse(stdout.trim());
+        resolve(result);
+      } catch (parseErr) {
+        console.error('Failed to parse Python output:', stdout);
+        reject(new Error('Invalid response from prediction script'));
+      }
     });
-    return response.data;
-  } catch (error) {
-    console.error('Error sending image to model:', error);
-    throw error;
-  }
+  });
 }
