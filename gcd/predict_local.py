@@ -6,6 +6,10 @@ runs text detection + digit classification, and prints the result as JSON to std
 import sys
 import json
 import os
+
+# Force CPU-only mode (avoids needing the 2GB CUDA torch)
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 import cv2
 from ultralytics import YOLO
 
@@ -14,6 +18,20 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 
 TEXT_MODEL_PATH = os.path.join(MODELS_DIR, "grayscale_text_detect_model.pt")
 DIGIT_MODEL_PATH = os.path.join(MODELS_DIR, "grayscale_digit_detect.pt")
+
+# Load models once at module level
+_text_model = None
+_digit_model = None
+
+
+def get_models():
+    """Load models lazily and cache them."""
+    global _text_model, _digit_model
+    if _text_model is None:
+        _text_model = YOLO(TEXT_MODEL_PATH)
+    if _digit_model is None:
+        _digit_model = YOLO(DIGIT_MODEL_PATH)
+    return _text_model, _digit_model
 
 
 def predict(image_path):
@@ -26,9 +44,8 @@ def predict(image_path):
     if not os.path.exists(DIGIT_MODEL_PATH):
         return {"error": f"Digit model not found: {DIGIT_MODEL_PATH}"}
 
-    # Load models
-    text_model = YOLO(TEXT_MODEL_PATH)
-    digit_model = YOLO(DIGIT_MODEL_PATH)
+    # Load models (cached after first call)
+    text_model, digit_model = get_models()
 
     # Read and prepare image
     gray_img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -38,7 +55,7 @@ def predict(image_path):
     gray_img = cv2.resize(gray_img, (640, 640))
 
     # Stage 1: Detect text/label regions
-    results = text_model(image_path)
+    results = text_model(image_path, device="cpu", verbose=False)
 
     cropped_rois = []
     for result in results:
@@ -61,7 +78,7 @@ def predict(image_path):
 
     for roi in cropped_rois:
         cv2.imwrite(temp_path, roi)
-        digit_results = digit_model(temp_path)
+        digit_results = digit_model(temp_path, device="cpu", verbose=False)
 
         for digit_result in digit_results:
             digit_map = []

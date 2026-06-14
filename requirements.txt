@@ -1,0 +1,17 @@
+# ============================================================
+# IMPORTANT: Install in this order to avoid downloading 1.3GB
+# of CUDA PyTorch. Run these two commands:
+#
+#   Step 1 (CPU-only PyTorch — ~200MB instead of ~1.3GB):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+#
+#   Step 2 (everything else):
+#   pip install -r requirements.txt --no-cache-dir
+# ============================================================
+
+ultralytics
+opencv-python-headless
+numpy
+Pillow
+pandas
+openpyxl

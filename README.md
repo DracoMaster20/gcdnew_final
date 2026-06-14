@@ -12,11 +12,17 @@ A Raspberry Pi-powered system that uses **YOLOv8 object detection** to read gas 
 ```bash
 git clone https://github.com/DracoMaster20/gcdnew_final.git
 cd gcdnew_final/gcd
+
+# Install Python deps (CPU-only PyTorch to save ~1GB of space)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+pip install -r ../requirements.txt --no-cache-dir
+
+# Install Node deps & launch
 npm install
 npm start
 ```
 
-> **Note:** You must run `npm install` before starting the app to install all Node.js dependencies (Electron, Axios, ExcelJS, etc.).
+> **Note:** Both `pip install` and `npm install` are required — the Electron app calls Python for local YOLO inference.
 
 ## 📁 Project Structure
 
@@ -96,10 +102,13 @@ This option runs YOLO inference **locally** using the model weights in the `mode
 # 1. Navigate to the project directory
 cd gcdnew_final/gcd
 
-# 2. Install Python dependencies
-pip install ultralytics opencv-python pandas openpyxl Pillow
+# 2. Install CPU-only PyTorch FIRST (~200MB instead of ~1.3GB)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
 
-# 3. Run the Tkinter app
+# 3. Install remaining Python dependencies
+pip install -r ../requirements.txt --no-cache-dir
+
+# 4. Run the Tkinter app
 python tkinter_gas.py
 ```
 
