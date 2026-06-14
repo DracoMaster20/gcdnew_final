@@ -17,7 +17,6 @@ build/
 venv/
 
 # YOLO / ML
-*.pt
 runs/
 
 # IDE
